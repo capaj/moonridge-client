@@ -1,0 +1,33 @@
+{
+  "name": "Moonridge-client",
+  "version": "0.6.9",
+  "description": "client library for Mongo ORM framework Moonridge",
+  "main": "moonridge-node.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/capaj/Moonridge-client.git"
+  },
+  "keywords": [
+    "mongoose",
+    "mongo",
+    "ORM",
+    "socket.io",
+    "model",
+    "rpc",
+    "realtime",
+    "live",
+    "query"
+  ],
+  "author": "capajj@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/capaj/Moonridge-client/issues"
+  },
+  "homepage": "https://github.com/capaj/Moonridge-client",
+  "dependencies": {
+    "socket.io-rpc-client": "^0.8.9"
+  }
+}
