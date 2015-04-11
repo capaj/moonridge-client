@@ -203,6 +203,7 @@ module.exports = function $MR($RPC, $q, $log, extend) {
           init: [],    //is fired when first query result gets back from the server
           any: []
         };
+
         LQ._invokeListeners = function(which, params) {
 
           var index = eventListeners[which].length;
@@ -224,22 +225,19 @@ module.exports = function $MR($RPC, $q, $log, extend) {
          * @returns {Number}
          */
         LQ.on = function(evName, callback) {
-          return eventListeners[evName].push(callback) - 1;
-        };
-
-        /**
-         * unregisters previously registered event callback
-         * @param {String} evName
-         * @param {Number} evId
-         * @returns {Boolean} true when event was unregistered, false when not found
-         */
-        LQ.off = function(evName, evId) {
-          if (eventListeners[evName][evId]) {
-            delete eventListeners[evName][evId];
-            return true;
-          } else {
-            return false;
-          }
+          var subscriberId = eventListeners[evName].push(callback) - 1;
+          /**
+           * unregisters previously registered event callback
+           * @returns {Boolean} true when event was unregistered, false any subsequent call
+           */
+          return function unsubscribeEventListener() {
+            if (eventListeners[evName][subscriberId]) {
+              delete eventListeners[evName][subscriberId];
+              return true;
+            } else {
+              return false;
+            }
+          };
         };
 
         if (typeof previousLQ === 'object') {
@@ -350,7 +348,7 @@ module.exports = function $MR($RPC, $q, $log, extend) {
               }
               return;
             }
-            $log.error('Failed to find updated document.');
+            $log.error('Failed to find updated document _id ' + doc._id);
             LQ.recountIfNormalQuery();
           });
         };
