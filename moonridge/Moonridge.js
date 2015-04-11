@@ -105,7 +105,7 @@ module.exports = function $MR($RPC, $q, $log, extend) {
       };
 
       /**
-       * deletes a $$hashkey and calls serverside method
+       * deletes a $$hashkey and calls server side method
        * @param toCreate
        * @returns {Promise}
        */
@@ -115,7 +115,7 @@ module.exports = function $MR($RPC, $q, $log, extend) {
       };
 
       /**
-       * @param toRemove
+       * @param {Object} toRemove must have and _id
        * @returns {Promise}
        */
       this.remove = function(toRemove) {
@@ -355,7 +355,6 @@ module.exports = function $MR($RPC, $q, $log, extend) {
           });
         };
         /**
-         *
          * @param {String} id
          * @returns {boolean} true when it removes an element
          */
