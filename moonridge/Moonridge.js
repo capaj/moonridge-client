@@ -170,8 +170,7 @@ module.exports = function $MR($RPC, $q, $log, extend) {
       this.clientRPCMethods = {
         update: createLQEventHandler('update'),
         remove: createLQEventHandler('remove'),
-        create: createLQEventHandler('create'),
-        push: createLQEventHandler('push')
+        add: createLQEventHandler('add')
       };
 
       /**
@@ -198,8 +197,7 @@ module.exports = function $MR($RPC, $q, $log, extend) {
         var eventListeners = {
           update: [],
           remove: [],
-          create: [],
-          push: [],
+          add: [],
           init: [],    //is fired when first query result gets back from the server
           any: []
         };
@@ -213,7 +211,7 @@ module.exports = function $MR($RPC, $q, $log, extend) {
 
           index = eventListeners.any.length;
           while(index--){
-          	eventListeners.any[index].call(LQ, which, params);
+            eventListeners.any[index].call(LQ, which, params);
           }
         };
 
@@ -264,14 +262,17 @@ module.exports = function $MR($RPC, $q, $log, extend) {
           }
         };
         //syncing logic
-        LQ.on_create = function(doc, index) {
+        LQ.on_add = function(doc, index) {
           LQ.promise.then(function() {
+            if (LQ.indexedByMethods.findOne) {
+              return LQ.docs.splice(index, 1, doc);
+            }
             if (LQ.indexedByMethods.count) {
               LQ.count += 1; // when this is a count query, just increment and call it a day
               return;
             }
 
-            if (isNumber(index)) {
+            if (LQ.docs[index]) {
               LQ.docs.splice(index, 0, doc);
             } else {
               LQ.docs.push(doc);
@@ -282,25 +283,19 @@ module.exports = function $MR($RPC, $q, $log, extend) {
             LQ.recountIfNormalQuery();
           });
         };
-        LQ.on_push = LQ.on_create;  //used when item is not new but rather just was updated and fell into query results
         /**
          *
          * @param {Object} doc
-         * @param {bool|Number} isInResult for count it indicates whether to increment, decrement or leave as is,
+         * @param {Number} isInResult for count it indicates whether to increment, decrement or leave as is,
          *                   for normal queries can be a numerical index also
          */
-        LQ.on_update = function(doc, isInResult) {
+        LQ.on_update = function(doc, resultIndex) {
           LQ.promise.then(function() {
             if (LQ.indexedByMethods.count) {	// when this is a count query
-              if (isNumber(isInResult)) {
-                LQ.count += 1;
+              if (resultIndex === -1) {
+                LQ.count -= 1;
               } else {
-                if (isInResult === false) {
-                  LQ.count -= 1;
-                }
-                if (isInResult === true) {
-                  LQ.count += 1;
-                }
+                LQ.count += 1;
               }
               return;// just increment/decrement and call it a day
             }
@@ -309,24 +304,19 @@ module.exports = function $MR($RPC, $q, $log, extend) {
             while (i--) {
               var updated;
               if (LQ.docs[i]._id === doc._id) {
-                if (isInResult === false) {
+                if (resultIndex === false) {
                   LQ.docs.splice(i, 1);  //removing from docs
                   return;
                 } else {
                   // if a number, then doc should be moved
-                  if (isNumber(isInResult)) {	//LQ with sorting
-                    if (isInResult !== i) {
-                      if (i < isInResult) {
-                        LQ.docs.splice(i, 1);
-                        LQ.docs.splice(isInResult - 1, 0, doc);
-                      } else {
-                        LQ.docs.splice(i, 1);
-                        LQ.docs.splice(isInResult, 0, doc);
-                      }
 
+                  if (resultIndex !== i) {
+                    if (i < resultIndex) {
+                      LQ.docs.splice(i, 1);
+                      LQ.docs.splice(resultIndex - 1, 0, doc);
                     } else {
-                      updated = LQ.docs[i];
-                      extend(updated, doc);
+                      LQ.docs.splice(i, 1);
+                      LQ.docs.splice(resultIndex, 0, doc);
                     }
 
                   } else {
@@ -340,9 +330,9 @@ module.exports = function $MR($RPC, $q, $log, extend) {
               }
             }
             //when not found
-            if (isInResult) {
-              if (isNumber(isInResult)) {	//LQ with sorting
-                LQ.docs.splice(isInResult, 0, doc);
+            if (resultIndex !== -1) {
+              if (LQ.docs[resultIndex]) {
+                LQ.docs.splice(resultIndex, 0, doc);
               } else {
                 LQ.docs.push(doc); // pushing into docs if it was not found by loop
               }
