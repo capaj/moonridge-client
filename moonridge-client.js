@@ -91,6 +91,9 @@ function Moonridge(name, connectPromise, isDefault) {
     var model = this;
     var lastIndex = 0;  //this is used for storing liveQueries in _LQs object as an index, each liveQuery has unique
     this.name = name;
+    var modelRpc = function(name) {
+      return self.rpc('MR.' + name);
+    };
     this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
     this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
     this.deferred = Promise.defer();
@@ -101,7 +104,7 @@ function Moonridge(name, connectPromise, isDefault) {
      */
     this.update = function(toUpdate) {
       delete toUpdate.$$hashKey;
-      return model.rpc.update(toUpdate).catch(onRejection);
+      return modelRpc('update')(toUpdate).catch(onRejection);
     };
 
     /**
@@ -111,7 +114,7 @@ function Moonridge(name, connectPromise, isDefault) {
      */
     this.create = function(toCreate) {
       delete toCreate.$$hashKey;
-      return model.rpc('create')(toCreate).catch(onRejection);
+      return modelRpc('create')(toCreate).catch(onRejection);
     };
 
     /**
@@ -119,14 +122,14 @@ function Moonridge(name, connectPromise, isDefault) {
      * @returns {Promise}
      */
     this.remove = function(toRemove) {
-      return model.rpc('remove')(toRemove._id).catch(onRejection);
+      return modelRpc('remove')(toRemove._id).catch(onRejection);
     };
 
     /**
      * @returns {Array<String>} indicating which properties this model has defined in it's schema
      */
     this.listPaths = function() {
-      return model.rpc('listPaths')().catch(onRejection);
+      return modelRpc('listPaths')().catch(onRejection);
     };
 
     /**
@@ -370,7 +373,7 @@ function Moonridge(name, connectPromise, isDefault) {
       LQ.stop = function() {
         if (isNumber(LQ.index) && model._LQs[LQ.index]) {
           LQ.stopped = true;
-          model.rpc.unsubLQ(LQ.index).then(function(succes) {
+          modelRpc('unsubLQ')(LQ.index).then(function(succes) {
             if (succes) {
               if (LQ.indexedByMethods.count) {
                 LQ.count = 0;
@@ -413,7 +416,7 @@ function Moonridge(name, connectPromise, isDefault) {
 
         }
 
-        LQ.promise = model.rpc.liveQuery(LQ.query, LQ.index).then(function(res) {
+        LQ.promise = modelRpc('liveQuery')(LQ.query, LQ.index).then(function(res) {
 
           if (isNumber(res.count)) {  // this is a count query when servers sends number
             //$log.debug('Count we got back from the server is ' + res.count);
