@@ -28,12 +28,10 @@ function Moonridge(opts) {
 
 	var models = Object.create(null);
 
-	self.connectPromise = new Promise(function (resolve, reject){
-		Promise.resolve(opts).then(function(rOpts) {
-			self.rpc = RPC(rOpts.url, rOpts.hs);
-			self.socket = self.rpc.socket;
-			return self.rpc.initializedP;
-		});
+	self.connectPromise = Promise.resolve(opts).then(function(rOpts) {
+		self.rpc = RPC(rOpts.url, rOpts.hs);
+		self.socket = self.rpc.socket;
+		return self.rpc.initializedP;
 	});
 
 	self.getAllModels = function() {
