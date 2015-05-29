@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/capaj/Moonridge-client",
   "dependencies": {
-    "socket.io-rpc-client": "0.9.9"
+    "socket.io-rpc-client": "0.9.10"
   },
   "jspm": {
     "dependencies": {
