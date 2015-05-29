@@ -1,30 +1,22 @@
 var RPC = require('socket.io-rpc-client');
 var extend = require('./moonridge/extend/node-extend');
-var $log = require('debug')('moonridge:client');
+var debug = require('debug')('moonridge:client');
 var QueryChainable = require('./moonridge/query-chainable');
 var isNumber = function(val) {
 	return typeof val === 'number';
 };
 
-var MRs = {}; //stores instances of Moonridge backend instances
-
 /**
  * A Moonridge pseudo-constructor(don't call it with new keyword)
- * @param {String} name identifying the backend instance
  * @param {Object|Promise} opts when resolved, it will be an object with following properties:
  *                                  {String} url backend address where you will connect
  *                                  {Object} hs handshake for socket.io which you can access via socket.request._query
  * @returns {Moonridge} a Moonridge backend instance
  */
 function Moonridge(opts) {
-	var url = opts.url;
-	if (MRs[url]) {
-		return MRs[url];
-	}
 
 	var defUser = {privilige_level: 1};
 	var self = {user: defUser}; //by default, users priviliges are always set to 1
-	MRs[url] = self;
 
 	var models = Object.create(null);
 
@@ -49,6 +41,7 @@ function Moonridge(opts) {
 	 * @constructor
 	 */
 	function Model(name) {
+		debug('model ctor for ', name);
 		var model = this;
 		var lastIndex = 0;  //this is used for storing liveQueries in _LQs object as an index, each liveQuery has unique
 		this.name = name;
@@ -101,6 +94,7 @@ function Moonridge(opts) {
 			var query = {query: [], indexedByMethods: {}};
 			return new QueryChainable(query, function() {
 				var callQuery = function() {
+					debug('query ', query.query, ' is executed');
 					query.promise = model.rpc.query(query.query).then(function(result) {
 						if (query.indexedByMethods.findOne) {
 							query.doc = result;
@@ -126,7 +120,7 @@ function Moonridge(opts) {
 					LQ._invokeListeners(eventName, arguments);  //invoking model event
 
 				} else {
-					$log.error('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
+					debug('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
 				}
 			}
 		};
@@ -145,7 +139,7 @@ function Moonridge(opts) {
 		this.liveQuery = function(previousLQ) {
 
 			previousLQ && previousLQ.stop();
-
+			debug('LQ');
 			var LQ = {_model: model, docs: [], count: 0};
 
 			if (typeof Object.defineProperty === 'function') {
@@ -302,7 +296,7 @@ function Moonridge(opts) {
 						}
 						return;
 					}
-					$log.error('Failed to find updated document _id ' + doc._id);
+					debug('Failed to find updated document _id ' + doc._id);
 					LQ.recountIfNormalQuery();
 				});
 			};
@@ -325,7 +319,7 @@ function Moonridge(opts) {
 							return true;
 						}
 					}
-					$log.error('Failed to find deleted document.');
+					debug('Failed to find deleted document.');
 
 					return false;
 				});
@@ -380,7 +374,7 @@ function Moonridge(opts) {
 				LQ.promise = modelRpc('liveQuery')(LQ.query, LQ.index).then(function(res) {
 
 					if (isNumber(res.count)) {  // this is a count query when servers sends number
-						//$log.debug('Count we got back from the server is ' + res.count);
+						//debug.debug('Count we got back from the server is ' + res.count);
 
 						// this is not assignment but addition on purpose-if we create/remove docs before the initial
 						// count is determined we keep count of them inside count property. This way we stay in sync
@@ -453,39 +447,22 @@ function Moonridge(opts) {
 	};
 
 	/**
-	 * loads more than one model
+	 * prepares more than one model
 	 * @param {Array<string>} models
 	 * @returns {Promise} which resolves with an Object where models are indexed by their names
 	 */
-	self.getModels = function(models) {
-		var promises = {};
-		var index = models.length;
+	self.getModels = function(names) {
+		var models = {};
+		var index = names.length;
 		while (index--) {
 			var modelName = models[index];
-			promises[modelName] = self.getModel(modelName);
+			models[modelName] = self.model(modelName);
 		}
-		return Promise.all(promises);
+		return models;
 	};
 
 	return self;
 }
 
-/**
- * simple getter for MRs stored instances
- * @param {String} name
- * @returns {*}
- */
-
-Moonridge.getBackend = function(name) {
-	if (MRs[name]) {
-		return MRs[name];
-	} else {
-		throw new Error('no such Moonridge backend');
-	}
-};
-
-Moonridge.getDefaultBackend = function() {
-	return defaultBackend;
-};
 
 module.exports = Moonridge;
