@@ -15,7 +15,7 @@ var isNumber = function(val) {
  */
 function Moonridge(opts) {
 
-	var defUser = {privilige_level: 1};
+	var defUser = {privilige_level: 0};
 	var self = {user: defUser}; //by default, users priviliges are always set to 1
 
 	var models = Object.create(null);
@@ -32,21 +32,20 @@ function Moonridge(opts) {
 		});
 	};
 
-	function onRejection(reason) {
-		console.error(reason);
-	}
-
 	/**
 	 * @param {String} name
 	 * @constructor
 	 */
 	function Model(name) {
-		debug('model ctor for ', name);
 		var model = this;
 		var lastIndex = 0;  //this is used for storing liveQueries in _LQs object as an index, each liveQuery has unique
 		this.name = name;
-		var modelRpc = function(name) {
-			return self.rpc('MR.' + name);
+		/**
+		 * @param {String} modelMethod
+		 * @returns {Promise}
+		 */
+		var modelRpc = function(modelMethod) {
+			return self.rpc('MR.' + name + '.' + modelMethod);
 		};
 		this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
 		this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
@@ -57,8 +56,7 @@ function Moonridge(opts) {
 		 * @returns {Promise}
 		 */
 		this.update = function(toUpdate) {
-			delete toUpdate.$$hashKey;
-			return modelRpc('update')(toUpdate).catch(onRejection);
+			return modelRpc('update')(toUpdate);
 		};
 
 		/**
@@ -67,8 +65,7 @@ function Moonridge(opts) {
 		 * @returns {Promise}
 		 */
 		this.create = function(toCreate) {
-			delete toCreate.$$hashKey;
-			return modelRpc('create')(toCreate).catch(onRejection);
+			return modelRpc('create')(toCreate);
 		};
 
 		/**
@@ -76,14 +73,14 @@ function Moonridge(opts) {
 		 * @returns {Promise}
 		 */
 		this.remove = function(toRemove) {
-			return modelRpc('remove')(toRemove._id).catch(onRejection);
+			return modelRpc('remove')(toRemove._id);
 		};
 
 		/**
 		 * @returns {Array<String>} indicating which properties this model has defined in it's schema
 		 */
 		this.listPaths = function() {
-			return modelRpc('listPaths')().catch(onRejection);
+			return modelRpc('listPaths')();
 		};
 
 		/**
@@ -94,7 +91,6 @@ function Moonridge(opts) {
 			var query = {query: [], indexedByMethods: {}};
 			return new QueryChainable(query, function() {
 				var callQuery = function() {
-					debug('query ', query.query, ' is executed');
 					query.promise = model.rpc.query(query.query).then(function(result) {
 						if (query.indexedByMethods.findOne) {
 							query.doc = result;
@@ -139,7 +135,7 @@ function Moonridge(opts) {
 		this.liveQuery = function(previousLQ) {
 
 			previousLQ && previousLQ.stop();
-			debug('LQ');
+
 			var LQ = {_model: model, docs: [], count: 0};
 
 			if (typeof Object.defineProperty === 'function') {
@@ -374,7 +370,7 @@ function Moonridge(opts) {
 				LQ.promise = modelRpc('liveQuery')(LQ.query, LQ.index).then(function(res) {
 
 					if (isNumber(res.count)) {  // this is a count query when servers sends number
-						//debug.debug('Count we got back from the server is ' + res.count);
+						debug('Count we got back from the server is ' + res.count);
 
 						// this is not assignment but addition on purpose-if we create/remove docs before the initial
 						// count is determined we keep count of them inside count property. This way we stay in sync
@@ -418,7 +414,7 @@ function Moonridge(opts) {
 					}
 
 					return LQ;	//
-				}, onRejection);
+				});
 
 				return LQ;
 			};
@@ -447,18 +443,18 @@ function Moonridge(opts) {
 	};
 
 	/**
-	 * prepares more than one model
+	 * loads more than one model
 	 * @param {Array<string>} models
 	 * @returns {Promise} which resolves with an Object where models are indexed by their names
 	 */
-	self.getModels = function(names) {
-		var models = {};
-		var index = names.length;
+	self.getModels = function(models) {
+		var promises = {};
+		var index = models.length;
 		while (index--) {
 			var modelName = models[index];
-			models[modelName] = self.model(modelName);
+			promises[modelName] = self.getModel(modelName);
 		}
-		return models;
+		return Promise.all(promises);
 	};
 
 	return self;
