@@ -23,14 +23,23 @@ function Moonridge(opts) {
 	self.connectPromise = Promise.resolve(opts).then(function(rOpts) {
 		self.rpc = RPC(rOpts.url, rOpts.hs);
 		self.socket = self.rpc.socket;
+		self.getAllModels = function() {
+			self.rpc('MR.getModels')().then(function(models) {
+//                    TODO call getModel for all models
+			});
+		};
+
+		self.authorize = function() {
+			var pr = self.rpc('MR.authorize').apply(this, arguments);
+			return pr.then(function(user) {
+				self.user = user;
+				return user;
+			});
+		};
 		return self.rpc.initializedP;
 	});
 
-	self.getAllModels = function() {
-		self.rpc('MR.getModels')().then(function(models) {
-//                    TODO call getModel for all models
-		});
-	};
+
 
 	/**
 	 * @param {String} name
