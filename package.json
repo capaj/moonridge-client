@@ -1,6 +1,6 @@
 {
   "name": "moonridge-client",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "client library for Mongo ORM framework Moonridge",
   "main": "moonridge.js",
   "scripts": {
@@ -33,7 +33,7 @@
   "jspm": {
     "dependencies": {
 	  "socket.io-rpc-client": "0.9.11",
-      "util": "github:jspm/nodelibs-util@^0.1.0"
+	  "debug": "npm:debug@^2.2.0"
     }
   }
 }
