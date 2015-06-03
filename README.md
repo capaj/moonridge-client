@@ -1,5 +1,5 @@
 # Moonridge-client
-client library for Mongo remote ORM framework Moonridge.
+client library for Mongo remote ORM framework [Moonridge](https://github.com/capaj/Moonridge).
 
 Install with jspm(for browser) or npm(for node):
 
