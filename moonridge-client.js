@@ -8,7 +8,7 @@ var isNumber = function(val) {
 
 /**
  * A Moonridge pseudo-constructor(don't call it with new keyword)
- * @param {Object|Promise} opts when resolved, it will be an object with following properties:
+ * @param {Object} opts an object with following properties:
  *                                  {String} url backend address where you will connect
  *                                  {Object} hs handshake for socket.io which you can access via socket.request._query
  * @returns {Moonridge} a Moonridge backend instance
@@ -20,26 +20,21 @@ function Moonridge(opts) {
 
 	var models = Object.create(null);
 
-	self.connectPromise = Promise.resolve(opts).then(function(rOpts) {
-		self.rpc = RPC(rOpts.url, rOpts.hs);
-		self.socket = self.rpc.socket;
-		self.getAllModels = function() {
-			self.rpc('MR.getModels')().then(function(models) {
+	self.rpc = RPC(opts.url, opts.hs);
+	self.socket = self.rpc.socket;
+	self.getAllModels = function() {
+		self.rpc('MR.getModels')().then(function(models) {
 //                    TODO call getModel for all models
-			});
-		};
+		});
+	};
 
-		self.authorize = function() {
-			var pr = self.rpc('MR.authorize').apply(this, arguments);
-			return pr.then(function(user) {
-				self.user = user;
-				return user;
-			});
-		};
-		return self.rpc.initializedP;
-	});
-
-
+	self.authorize = function() {
+		var pr = self.rpc('MR.authorize').apply(this, arguments);
+		return pr.then(function(user) {
+			self.user = user;
+			return user;
+		});
+	};
 
 	/**
 	 * @param {String} name
@@ -58,7 +53,6 @@ function Moonridge(opts) {
 		};
 		this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
 		this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
-		this.deferred = Promise.defer();
 
 		/**
 		 * @param {Object} toUpdate moonridge object
