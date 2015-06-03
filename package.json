@@ -32,6 +32,7 @@
   },
   "jspm": {
     "dependencies": {
+	  "socket.io-rpc-client": "0.9.11",
       "util": "github:jspm/nodelibs-util@^0.1.0"
     }
   }

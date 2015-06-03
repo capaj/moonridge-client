@@ -1,5 +1,5 @@
 var RPC = require('socket.io-rpc-client');
-var extend = require('./moonridge/extend/node-extend');
+var extend = require('util')._extend;
 var debug = require('debug')('moonridge:client');
 var QueryChainable = require('./moonridge/query-chainable');
 var isNumber = function(val) {
