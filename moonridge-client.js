@@ -94,7 +94,7 @@ function Moonridge(opts) {
 			var query = {query: [], indexedByMethods: {}};
 			return new QueryChainable(query, function() {
 				var callQuery = function() {
-					query.promise = model.rpc.query(query.query).then(function(result) {
+					query.promise = modelRpc('query')(query.query).then(function(result) {
 						if (query.indexedByMethods.findOne) {
 							query.doc = result;
 						} else {
