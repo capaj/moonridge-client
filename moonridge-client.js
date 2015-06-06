@@ -97,9 +97,12 @@ function Moonridge(opts) {
 					query.promise = modelRpc('query')(query.query).then(function(result) {
 						if (query.indexedByMethods.findOne) {
 							query.doc = result;
+						} else if (query.indexedByMethods.distinct) {
+							query.values = result;
 						} else {
 							query.docs = result;
 						}
+						return result;
 					});
 				};
 
