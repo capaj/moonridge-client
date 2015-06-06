@@ -1,3 +1,20 @@
-/**
- * Created by capaj_000 on 6/6/2015.
- */
+require('chai').should();
+
+var validations = require('../moonridge/moonridge-method-validations');
+
+describe('moonridge method validations', function() {
+	it('should fail when validating distinct call with wrong number or arguments', function() {
+		validations.distinct([]).should.be.an.Error;
+		validations.distinct(['', '', function() {}]).should.be.an.Error;
+	});
+
+	it('should fail when validating where call with wrong number or arguments', function() {
+		validations.where([]).should.be.an.Error;
+		validations.where(['', '', function() {}]).should.be.an.Error;
+	});
+
+	it('should fail when limit call has anything else but one integer', function(){
+		validations.where([]).should.be.an.Error;
+		validations.where('10').should.be.an.Error;
+	});
+});
