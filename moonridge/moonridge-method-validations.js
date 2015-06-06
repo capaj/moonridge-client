@@ -31,7 +31,15 @@ var qMethodsEnum = {
     circle: noop,
     comment: noop,
     count: noop,    //available on client, but done in server memory, not sent to DB queries
-    //	distinct: noop,		//must be done in server memory, TODO implement this
+	distinct: function(args) {
+		if (args.length === 0) {
+			return new Error('distinct requires at least one argument');
+		}
+		if (args.length > 2) {
+			return new Error('distinct takes up to two arguments');
+		}
+		return true;
+	},		
     elemMatch: noop,
     equals: noop,
     exists: noop,
@@ -41,10 +49,10 @@ var qMethodsEnum = {
             return true;
         } else {
             if (args.length > 1) {
-                return new Error("FindOne does not take more than one argument");
+                return new Error("findOne does not take more than one argument");
             }
             if (typeof args[0] !== 'object') {
-                return new TypeError("FindOne takes just one Object as argument");
+                return new TypeError("findOne takes just one Object as argument");
             }
             return true;
         }
