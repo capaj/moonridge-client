@@ -4,6 +4,7 @@ var callJustOnce = [
     'findOne',
     'select',
     'count',
+    'distinct',
     'sort',
     'limit',
     'skip'

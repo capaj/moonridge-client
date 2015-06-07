@@ -95,6 +95,7 @@ function Moonridge(opts) {
 			return new QueryChainable(query, function() {
 				var callQuery = function() {
 					query.promise = modelRpc('query')(query.query).then(function(result) {
+						debug('result', result);
 						if (query.indexedByMethods.findOne) {
 							query.doc = result;
 						} else if (query.indexedByMethods.distinct) {
@@ -375,7 +376,7 @@ function Moonridge(opts) {
 
 				LQ.promise = modelRpc('liveQuery')(LQ.query, LQ.index).then(function(res) {
 
-					if (isNumber(res.count)) {  // this is a count query when servers sends number
+					if (LQ.indexedByMethods.count) {  // this is a count query when servers sends number
 						debug('Count we got back from the server is ' + res.count);
 
 						// this is not assignment but addition on purpose-if we create/remove docs before the initial
@@ -383,6 +384,8 @@ function Moonridge(opts) {
 						// with the real count
 						LQ.count += res.count;
 
+					} else if (LQ.indexedByMethods.distinct) {
+						LQ.values = res.values;
 					} else {
 
 						var i = res.docs.length;
