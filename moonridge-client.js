@@ -163,7 +163,7 @@ function Moonridge(opts) {
 			};
 
 			LQ._invokeListeners = function(which, params) {
-
+				debug('invoking ', which, ' with params ', params);
 				var index = eventListeners[which].length;
 				while (index--) {
 					eventListeners[which][index].call(LQ, which, params);
