@@ -2,6 +2,7 @@ var RPC = require('socket.io-rpc-client');
 var extend = Object.copyOwnProperties;	//this is defined in o.extend dependency to socket.io-rpc
 var debug = require('debug')('moonridge:client');
 var QueryChainable = require('./moonridge/query-chainable');
+var _ = require('lodash');
 var isNumber = function(val) {
 	return typeof val === 'number';
 };
@@ -120,10 +121,11 @@ function Moonridge(opts) {
 			return function(LQId, doc, isInResult) {
 				var LQ = model._LQs[LQId];
 				if (LQ) {
-					//updateLQ
-					LQ['on_' + eventName](doc, isInResult);
-					LQ._invokeListeners(eventName, arguments);  //invoking model event
-
+					var params = arguments;
+					return LQ.promise.then(function() {
+						LQ['on_' + eventName](doc, isInResult);
+						LQ._invokeListeners(eventName, params);  //invoking model event
+					});
 				} else {
 					debug('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
 				}
@@ -131,6 +133,7 @@ function Moonridge(opts) {
 		};
 
 		this.clientRPCMethods = {
+			distinctSync: createLQEventHandler('distinctSync'),
 			update: createLQEventHandler('update'),
 			remove: createLQEventHandler('remove'),
 			add: createLQEventHandler('add')
@@ -159,30 +162,41 @@ function Moonridge(opts) {
 
 			var eventListeners = {
 				update: [],
+				distinctSync: [],
 				remove: [],
 				add: [],
 				init: [],    //is fired when first query result gets back from the server
 				any: []
 			};
 
-			LQ._invokeListeners = function(which, params) {
-				debug('invoking ', which, ' with params ', params);
+			LQ._invokeListeners = function() {
+				var which = arguments[0];
+				debug('invoking ', which, ' with arguments ', arguments);
 				var index = eventListeners[which].length;
 				while (index--) {
-					eventListeners[which][index].call(LQ, which, params);
+					try{
+						eventListeners[which][index].apply(LQ, arguments);
+					}catch(err){
+						console.error(err.stack);
+						throw err;
+					}
 				}
 
 				index = eventListeners.any.length;
 				while (index--) {
-					eventListeners.any[index].call(LQ, which, params);
+					try{
+						eventListeners.any[index].apply(LQ, arguments);
+					}catch(err){
+						console.error(err.stack);
+						throw err;
+					}
 				}
 			};
-
 
 			/**
 			 * registers event callback on this model
 			 * @param {String} evName
-			 * @param {Function} callback
+			 * @param {Function} callback will be called with LiveQuery as context, evName, and two other params
 			 * @returns {Number}
 			 */
 			LQ.on = function(evName, callback) {
@@ -193,7 +207,7 @@ function Moonridge(opts) {
 				 */
 				return function unsubscribeEventListener() {
 					if (eventListeners[evName][subscriberId]) {
-						delete eventListeners[evName][subscriberId];
+						eventListeners[evName].splice(subscriberId, 1);
 						return true;
 					} else {
 						return false;
@@ -226,7 +240,7 @@ function Moonridge(opts) {
 			};
 			//syncing logic
 			LQ.on_add = function(doc, index) {
-				LQ.promise.then(function() {
+
 					if (LQ.indexedByMethods.findOne) {
 						return LQ.docs.splice(index, 1, doc);
 					}
@@ -244,16 +258,17 @@ function Moonridge(opts) {
 						LQ.docs.splice(LQ.docs.length - 1, 1);  // this needs to occur after push of the new doc
 					}
 					LQ.recountIfNormalQuery();
-				});
+
 			};
 			/**
 			 *
 			 * @param {Object} doc
-			 * @param {Number} isInResult for count it indicates whether to increment, decrement or leave as is,
+			 * @param {Number} resultIndex for count it indicates whether to increment, decrement or leave as is,
 			 *                   for normal queries can be a numerical index also
 			 */
 			LQ.on_update = function(doc, resultIndex) {
-				LQ.promise.then(function() {
+				debug('LQ.on_update ', doc, resultIndex);
+
 					if (LQ.indexedByMethods.count) {	// when this is a count query
 						if (resultIndex === -1) {
 							LQ.count -= 1;
@@ -274,11 +289,10 @@ function Moonridge(opts) {
 								// if a number, then doc should be moved
 
 								if (resultIndex !== i) {
+									LQ.docs.splice(i, 1);
 									if (i < resultIndex) {
-										LQ.docs.splice(i, 1);
 										LQ.docs.splice(resultIndex - 1, 0, doc);
 									} else {
-										LQ.docs.splice(i, 1);
 										LQ.docs.splice(resultIndex, 0, doc);
 									}
 
@@ -303,19 +317,18 @@ function Moonridge(opts) {
 					}
 					debug('Failed to find updated document _id ' + doc._id);
 					LQ.recountIfNormalQuery();
-				});
+
 			};
 			/**
 			 * @param {String} id
 			 * @returns {boolean} true when it removes an element
 			 */
 			LQ.on_remove = function(id) {
-				LQ.promise.then(function() {
+
 					if (LQ.indexedByMethods.count) {
 						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
 						return true;
 					}
-
 					var i = LQ.docs.length;
 					while (i--) {
 						if (LQ.docs[i]._id === id) {
@@ -327,13 +340,26 @@ function Moonridge(opts) {
 					debug('Failed to find deleted document.');
 
 					return false;
-				});
+
 			};
-			//notify the server we don't want to receive any more updates
+			LQ.on_distinctSync = function(syncObj) {
+				debug('distinctSync has run, values now ', LQ.values);
+
+				LQ.values = LQ.values.concat(syncObj.add);
+				LQ.values = _.difference(LQ.values, syncObj.remove);
+
+				debug('distinctSync has run, values now ', LQ.values);
+
+			};
+			/**
+			 * notify the server we don't want to receive any more updates
+			 * @returns {Promise}
+			 */
 			LQ.stop = function() {
+				debug('stopping live query: ', LQ.index);
 				if (isNumber(LQ.index) && model._LQs[LQ.index]) {
 					LQ.stopped = true;
-					modelRpc('unsubLQ')(LQ.index).then(function(succes) {
+					return modelRpc('unsubLQ')(LQ.index).then(function(succes) {
 						if (succes) {
 							if (LQ.indexedByMethods.count) {
 								LQ.count = 0;
@@ -343,8 +369,8 @@ function Moonridge(opts) {
 							}
 							delete model._LQs[LQ.index];
 							delete model._LQsByQuery[LQ._queryStringified];
-
 						}
+						return succes;
 					});
 
 				} else {
@@ -422,6 +448,7 @@ function Moonridge(opts) {
 						}
 					} else {
 						LQ.stopped = false;
+						LQ.live = true;
 					}
 
 					return LQ;	//
