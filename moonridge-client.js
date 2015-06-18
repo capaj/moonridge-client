@@ -2,7 +2,7 @@ var RPC = require('socket.io-rpc-client');
 var extend = Object.copyOwnProperties;	//this is defined in o.extend dependency to socket.io-rpc
 var debug = require('debug')('moonridge:client');
 var QueryChainable = require('./moonridge/query-chainable');
-var _ = require('lodash');
+var difference = require('lodash.difference');
 var isNumber = function(val) {
 	return typeof val === 'number';
 };
@@ -346,7 +346,7 @@ function Moonridge(opts) {
 				debug('distinctSync has run, values now ', LQ.values);
 
 				LQ.values = LQ.values.concat(syncObj.add);
-				LQ.values = _.difference(LQ.values, syncObj.remove);
+				LQ.values = difference(LQ.values, syncObj.remove);
 
 				debug('distinctSync has run, values now ', LQ.values);
 

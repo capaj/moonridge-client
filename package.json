@@ -1,6 +1,6 @@
 {
   "name": "moonridge-client",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "client library for Mongo ORM framework Moonridge",
   "main": "moonridge.js",
   "scripts": {
@@ -28,12 +28,14 @@
   },
   "homepage": "https://github.com/capaj/Moonridge-client",
   "dependencies": {
-    "socket.io-rpc-client": "0.9.11"
+    "socket.io-rpc-client": "0.9.11",
+	"lodash.difference": "^3.2.1"
   },
   "jspm": {
     "dependencies": {
-	  "socket.io-rpc-client": "0.9.11",
-	  "debug": "npm:debug@^2.2.0"
+      "debug": "npm:debug@^2.2.0",
+      "lodash.difference": "npm:lodash.difference@^3.2.1",
+      "socket.io-rpc-client": "github:capaj/socket.io-rpc-client@^0.9.11"
     }
   }
 }
