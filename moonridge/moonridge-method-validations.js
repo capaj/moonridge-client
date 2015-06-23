@@ -70,8 +70,19 @@ var qMethodsEnum = {
 	maxScan: singleIntegerValidation,
 	mod: noop,
 	ne: noop,
-	near: noop,
-	nearSphere: noop,
+	near: function(args) {
+		if (args.length === 0) {
+			return new Error("near requires at least one argument");
+		} else {
+			if (args.length > 2) {
+				return new Error("near does not take more than two argument");
+			}
+			if (typeof args[0] !== 'object') {
+				return new TypeError("near takes just one Object as argument");
+			}
+			return true;
+		}
+	},
 	nin: noop,
 	nor: noop,
 	or: noop,
