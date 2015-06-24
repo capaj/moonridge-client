@@ -97,6 +97,7 @@ function Moonridge(opts) {
 				var callQuery = function() {
 					query.promise = modelRpc('query')(query.query).then(function(result) {
 						debug('query result ', result);
+						query.result = result;
 						if (query.indexedByMethods.findOne) {
 							query.doc = result;
 						} else if (query.indexedByMethods.distinct) {
@@ -352,25 +353,18 @@ function Moonridge(opts) {
 
 			};
 			/**
-			 * notify the server we don't want to receive any more updates
+			 * notify the server we don't want to receive any more updates on this query
 			 * @returns {Promise}
 			 */
 			LQ.stop = function() {
 				debug('stopping live query: ', LQ.index);
 				if (isNumber(LQ.index) && model._LQs[LQ.index]) {
 					LQ.stopped = true;
-					return modelRpc('unsubLQ')(LQ.index).then(function(succes) {
-						if (succes) {
-							if (LQ.indexedByMethods.count) {
-								LQ.count = 0;
-							} else {
-								LQ.doc = null;
-								LQ.docs = [];
-							}
-							delete model._LQs[LQ.index];
-							delete model._LQsByQuery[LQ._queryStringified];
-						}
-						return succes;
+					return modelRpc('unsubLQ')(LQ.index).then(function() {
+
+						delete model._LQs[LQ.index];
+						delete model._LQsByQuery[LQ._queryStringified];
+
 					});
 
 				} else {
