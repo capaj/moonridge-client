@@ -56,17 +56,26 @@ function Moonridge(opts) {
 		this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
 
 		/**
-		 * @param {Object} toUpdate moonridge object
-		 * @returns {Promise}
+		 * @param {Object} toSave moonridge object
+		 * @returns {Promise} resolved when object is saved
 		 */
-		this.update = function(toUpdate) {
-			return modelRpc('update')(toUpdate);
+		this.save = function(toSave) {
+			return modelRpc('save')(toSave);
+		};
+		/**
+		 * NOTE that you cannot pass update options(as in http://mongoosejs.com/docs/api.html#model_Model.update)
+		 * 			it doesn't make sense to allow edit multiple docs with one command
+		 * @param {Object} query which will be sent to mongo update call
+		 * @param {Object} expression which will be sent to mongo update call
+		 * @returns {Promise} resolved when object is updated
+		 */
+		this.update = function(query, expression) {
+			return modelRpc('update')(query, expression);
 		};
 
 		/**
-		 * deletes a $$hashkey and calls server side method
-		 * @param toCreate
-		 * @returns {Promise}
+		 * @param {Object} toCreate
+		 * @returns {Promise} resolved when object is created
 		 */
 		this.create = function(toCreate) {
 			return modelRpc('create')(toCreate);
@@ -133,12 +142,12 @@ function Moonridge(opts) {
 			}
 		};
 
-		this.clientRPCMethods = {
-			distinctSync: createLQEventHandler('distinctSync'),
-			update: createLQEventHandler('update'),
-			remove: createLQEventHandler('remove'),
-			add: createLQEventHandler('add')
-		};
+		var clientRPCMethods = ['distinctSync', 'update', 'remove', 'add'];
+		this.clientRPCMethods = {};
+
+		clientRPCMethods.forEach(function (name){
+			this.clientRPCMethods[name] = createLQEventHandler(name);
+		}.bind(this));
 
 		/**
 		 * @param {Object} previousLQ useful when we want to modify a running LQ, pass it after it is stopped
