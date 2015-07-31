@@ -56,21 +56,29 @@ function Moonridge(opts) {
 		this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
 
 		/**
-		 * @param {Object} toSave moonridge object
+		 * @param {Object} toUpdate moonridge object
 		 * @returns {Promise} resolved when object is saved
 		 */
-		this.save = function(toSave) {
-			return modelRpc('save')(toSave);
+		this.update = function(toUpdate) {
+			return modelRpc('update')(toUpdate);
 		};
 		/**
-		 * NOTE that you cannot pass update options(as in http://mongoosejs.com/docs/api.html#model_Model.update)
-		 * 			it doesn't make sense to allow edit multiple docs with one command
-		 * @param {Object} query which will be sent to mongo update call
-		 * @param {Object} expression which will be sent to mongo update call
+		 * @param {Object} query which will be used to find one document to update
+		 * @param {String} path
+		 * @param {*} item it is highly recommended to use simple values, not objects
 		 * @returns {Promise} resolved when object is updated
 		 */
-		this.update = function(query, expression) {
-			return modelRpc('update')(query, expression);
+		this.addToSet = function(query, path, item) {
+			return modelRpc('addToSet')(query, path, item);
+		};
+		/**
+		 * @param {Object} query which will be used to find one document to update
+		 * @param {String} path
+		 * @param {*} item it is highly recommended to use simple values, not objects
+		 * @returns {Promise} resolved when object is updated
+		 */
+		this.removeFromSet = function(query, path, item) {
+			return modelRpc('removeFromSet')(query, path, item);
 		};
 
 		/**
