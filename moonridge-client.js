@@ -16,7 +16,7 @@ var isNumber = function(val) {
  */
 function Moonridge(opts) {
 
-	var defUser = {privilige_level: 0};
+	var defUser = {privilege_level: 0};
 	var self = {user: defUser}; //by default, users priviliges are always set to 1
 
 	var models = Object.create(null);
