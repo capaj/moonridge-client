@@ -115,15 +115,6 @@ function Moonridge(opts) {
 					query.promise = modelRpc('query')(query.query).then(function(result) {
 						debug('query result ', result);
 						query.result = result;
-						if (query.indexedByMethods.findOne) {
-							query.doc = result;
-						} else if (query.indexedByMethods.distinct) {
-							query.values = result;
-						} else if (query.indexedByMethods.count) {
-							query.count = result;
-						} else {
-							query.docs = result;
-						}
 						return result;
 					});
 				};
@@ -153,7 +144,7 @@ function Moonridge(opts) {
 		var clientRPCMethods = ['distinctSync', 'update', 'remove', 'add'];
 		this.clientRPCMethods = {};
 
-		clientRPCMethods.forEach(function (name){
+		clientRPCMethods.forEach(function(name) {
 			this.clientRPCMethods[name] = createLQEventHandler(name);
 		}.bind(this));
 
@@ -166,17 +157,7 @@ function Moonridge(opts) {
 
 			previousLQ && previousLQ.stop();
 
-			var LQ = {_model: model, docs: [], count: 0};
-
-			if (typeof Object.defineProperty === 'function') {
-				Object.defineProperty(LQ, 'doc', {
-					enumerable: false,
-					configurable: false,
-					get: function() {
-						return LQ.docs[0];
-					}
-				});
-			}
+			var LQ = {_model: model};
 
 			var eventListeners = {
 				update: [],
@@ -192,9 +173,9 @@ function Moonridge(opts) {
 				debug('invoking ', which, ' with arguments ', arguments);
 				var index = eventListeners[which].length;
 				while (index--) {
-					try{
+					try {
 						eventListeners[which][index].apply(LQ, arguments);
-					}catch(err){
+					} catch (err) {
 						console.error(err.stack);
 						throw err;
 					}
@@ -202,9 +183,9 @@ function Moonridge(opts) {
 
 				index = eventListeners.any.length;
 				while (index--) {
-					try{
+					try {
 						eventListeners.any[index].apply(LQ, arguments);
-					}catch(err){
+					} catch (err) {
 						console.error(err.stack);
 						throw err;
 					}
@@ -243,39 +224,33 @@ function Moonridge(opts) {
 			}
 
 			LQ.getDocById = function(id) {
-				var i = LQ.docs.length;
+				var i = LQ.result.length;
 				while (i--) {
-					if (LQ.docs[i]._id === id) {
-						return LQ.docs[i];
+					if (LQ.result[i]._id === id) {
+						return LQ.result[i];
 					}
 				}
 				return null;
 			};
-			LQ.recountIfNormalQuery = function() {
-				if (!LQ.indexedByMethods.count) {
-					LQ.count = LQ.docs.length;
-				}
-			};
 			//syncing logic
 			LQ.on_add = function(doc, index) {
 
-					if (LQ.indexedByMethods.findOne) {
-						return LQ.docs.splice(index, 1, doc);
-					}
-					if (LQ.indexedByMethods.count) {
-						LQ.count += 1; // when this is a count query, just increment and call it a day
-						return;
-					}
+				if (LQ.indexedByMethods.findOne) {
+					return LQ.result.splice(index, 1, doc);
+				}
+				if (LQ.indexedByMethods.count) {
+					LQ.result += 1; // when this is a count query, just increment and call it a day
+					return;
+				}
 
-					if (LQ.docs[index]) {
-						LQ.docs.splice(index, 0, doc);
-					} else {
-						LQ.docs.push(doc);
-					}
-					if (LQ.indexedByMethods.limit < LQ.docs.length) {
-						LQ.docs.splice(LQ.docs.length - 1, 1);  // this needs to occur after push of the new doc
-					}
-					LQ.recountIfNormalQuery();
+				if (LQ.result[index]) {
+					LQ.result.splice(index, 0, doc);
+				} else {
+					LQ.result.push(doc);
+				}
+				if (LQ.indexedByMethods.limit < LQ.result.length) {
+					LQ.result.splice(LQ.result.length - 1, 1);  // this needs to occur after push of the new doc
+				}
 
 			};
 			/**
@@ -287,54 +262,53 @@ function Moonridge(opts) {
 			LQ.on_update = function(doc, resultIndex) {
 				debug('LQ.on_update ', doc, resultIndex);
 
-					if (LQ.indexedByMethods.count) {	// when this is a count query
-						if (resultIndex === -1) {
-							LQ.count -= 1;
-						} else {
-							LQ.count += 1;
-						}
-						return;// just increment/decrement and call it a day
+				if (LQ.indexedByMethods.count) {	// when this is a count query
+					if (resultIndex === -1) {
+						LQ.result -= 1;
+					} else {
+						LQ.result += 1;
 					}
+					return;// just increment/decrement and call it a day
+				}
 
-					var i = LQ.docs.length;
-					while (i--) {
-						var updated;
-						if (LQ.docs[i]._id === doc._id) {
-							if (resultIndex === false) {
-								LQ.docs.splice(i, 1);  //removing from docs
-								return;
-							} else {
-								// if a number, then doc should be moved
+				var i = LQ.result.length;
+				while (i--) {
+					var updated;
+					if (LQ.result[i]._id === doc._id) {
+						if (resultIndex === false) {
+							LQ.result.splice(i, 1);  //removing from docs
+							return;
+						} else {
+							// if a number, then doc should be moved
 
-								if (resultIndex !== i) {
-									LQ.docs.splice(i, 1);
-									if (i < resultIndex) {
-										LQ.docs.splice(resultIndex - 1, 0, doc);
-									} else {
-										LQ.docs.splice(resultIndex, 0, doc);
-									}
-
+							if (resultIndex !== i) {
+								LQ.result.splice(i, 1);
+								if (i < resultIndex) {
+									LQ.result.splice(resultIndex - 1, 0, doc);
 								} else {
-									updated = LQ.docs[i];
-									extend(updated, doc);
+									LQ.result.splice(resultIndex, 0, doc);
 								}
 
+							} else {
+								updated = LQ.result[i];
+								extend(updated, doc);
 							}
 
-							return;
 						}
-					}
-					//when not found
-					if (resultIndex !== -1) {
-						if (LQ.docs[resultIndex]) {
-							LQ.docs.splice(resultIndex, 0, doc);
-						} else {
-							LQ.docs.push(doc); // pushing into docs if it was not found by loop
-						}
+
 						return;
 					}
-					debug('Failed to find updated document _id ' + doc._id);
-					LQ.recountIfNormalQuery();
+				}
+				//when not found
+				if (resultIndex !== -1) {
+					if (LQ.result[resultIndex]) {
+						LQ.result.splice(resultIndex, 0, doc);
+					} else {
+						LQ.result.push(doc); // pushing into docs if it was not found by loop
+					}
+					return;
+				}
+				debug('Failed to find updated document _id ' + doc._id);
 
 			};
 			/**
@@ -343,30 +317,28 @@ function Moonridge(opts) {
 			 */
 			LQ.on_remove = function(id) {
 
-					if (LQ.indexedByMethods.count) {
-						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
+				if (LQ.indexedByMethods.count) {
+					LQ.result -= 1;	// when this is a count query, just decrement and call it a day
+					return true;
+				}
+				var i = LQ.result.length;
+				while (i--) {
+					if (LQ.result[i]._id === id) {
+						LQ.result.splice(i, 1);
 						return true;
 					}
-					var i = LQ.docs.length;
-					while (i--) {
-						if (LQ.docs[i]._id === id) {
-							LQ.docs.splice(i, 1);
-							LQ.count -= 1;
-							return true;
-						}
-					}
-					debug('Failed to find deleted document.');
+				}
+				debug('Failed to find deleted document.');
 
-					return false;
+				return false;
 
 			};
 			LQ.on_distinctSync = function(syncObj) {
-				debug('distinctSync has run, values now ', LQ.values);
 
-				LQ.values = LQ.values.concat(syncObj.add);
-				LQ.values = difference(LQ.values, syncObj.remove);
+				LQ.result = LQ.result.concat(syncObj.add);
+				LQ.result = difference(LQ.result, syncObj.remove);
 
-				debug('distinctSync has run, values now ', LQ.values);
+				debug('distinctSync has run, values now ', LQ.result);
 
 			};
 			/**
@@ -421,17 +393,16 @@ function Moonridge(opts) {
 						// this is not assignment but addition on purpose-if we create/remove docs before the initial
 						// count is determined we keep count of them inside count property. This way we stay in sync
 						// with the real count
-						LQ.count += res.count;
+						LQ.result += res.count;
 
 					} else if (LQ.indexedByMethods.distinct) {
-						LQ.values = res.values;
+						LQ.result = res.values;
 					} else {
 
 						var i = res.docs.length;
-						LQ.count += i;
 
 						while (i--) {
-							LQ.docs[i] = res.docs[i];
+							LQ.result[i] = res.docs[i];
 						}
 
 					}
@@ -443,12 +414,7 @@ function Moonridge(opts) {
 						});
 
 						var reExecute = function() {
-
-							LQ.docs = [];
-							LQ.count = 0;
-
 							queryExecFn(true);
-
 						};
 						if (self.authObj) { //auth obj should be deleted if you need to logout a user
 							//when user is authenticated, we want to reexecute after he is reauthenticated
