@@ -398,7 +398,7 @@ function Moonridge(opts) {
 					} else if (LQ.indexedByMethods.distinct) {
 						LQ.result = res.values;
 					} else {
-
+						LQ.result = [];
 						var i = res.docs.length;
 
 						while (i--) {
