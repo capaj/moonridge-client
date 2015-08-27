@@ -1,6 +1,6 @@
 {
   "name": "moonridge-client",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "client library for Mongo ORM framework Moonridge",
   "main": "moonridge.js",
   "scripts": {
