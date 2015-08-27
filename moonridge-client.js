@@ -90,11 +90,15 @@ function Moonridge(opts) {
 		};
 
 		/**
-		 * @param {Object} toRemove must have and _id
+		 * @param {Object|String} toRemove must have and _id if an object, othrwise we assume the string is the id
 		 * @returns {Promise}
 		 */
 		this.remove = function(toRemove) {
-			return modelRpc('remove')(toRemove._id);
+			var id = toRemove;
+			if (typeof toRemove === 'object') {
+				id = toRemove._id;
+			}
+			return modelRpc('remove')(id);
 		};
 
 		/**
