@@ -17,6 +17,16 @@ var singleIntegerValidation = function(args) {
 	return new Error('Method must be called with exactly one Number argument');
 };
 
+var upToTwoArgs = function(args) {
+	if (args.length === 0) {
+		return new Error('requires at least one argument');
+	}
+	if (args.length > 2) {
+		return new Error('takes up to two arguments');
+	}
+	return true;
+};
+
 /**
  * query methods which modifies the collection are not included, those have to be called via RPC methods
  * @type {Object.<string, Function>} name of the method and validation function
@@ -30,15 +40,7 @@ var qMethodsEnum = {
 	circle: noop,
 	comment: noop,
 	count: noop,    //available on client, but done in server memory, not sent to DB queries
-	distinct: function(args) {
-		if (args.length === 0) {
-			return new Error('distinct requires at least one argument');
-		}
-		if (args.length > 2) {
-			return new Error('distinct takes up to two arguments');
-		}
-		return true;
-	},
+	distinct: upToTwoArgs,
 	elemMatch: noop,
 	equals: noop,
 	exists: noop,
@@ -57,15 +59,15 @@ var qMethodsEnum = {
 		}
 	},
 	geometry: noop,
-	gt: noop,
-	gte: noop,
+	gt: upToTwoArgs,
+	gte: upToTwoArgs,
 	hint: noop,
 	in: noop,
 	intersects: noop,
 //		lean: noop, //always enabled
 	limit: singleIntegerValidation,
-	lt: noop,
-	lte: noop,
+	lt: upToTwoArgs,
+	lte: upToTwoArgs,
 	maxDistance: noop,
 	maxScan: singleIntegerValidation,
 	mod: noop,
@@ -94,7 +96,19 @@ var qMethodsEnum = {
 	size: noop,
 	skip: singleIntegerValidation,	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
 	slice: noop,
-	sort: noop,
+	sort: function(args) {
+		if (args.length === 0) {
+			return new Error("sort requires one argument");
+		} else {
+			if (args.length > 1) {
+				return new Error("sort does not take more than two argument");
+			}
+			if (typeof args[0] !== 'string') {
+				return new TypeError("sort takes a string as an argument");
+			}
+			return true;
+		}
+	},
 	where: function(args) {
 		if (args.length > 0 && args.length <= 2) {
 			return true;    //TODO check types here
