@@ -57,6 +57,8 @@ function Moonridge(opts) {
 		var modelRpc = function(modelMethod) {
 			return self.rpc('MR.' + name + '.' + modelMethod);
 		};
+		this.modelRpc = modelRpc
+
 		this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
 		this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
 
