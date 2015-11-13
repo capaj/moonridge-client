@@ -29,17 +29,19 @@ function Moonridge(opts) {
 		});
 	};
 
-	function assignAndReturn(pr) {
-		return pr.then(function () {
+	self.authorize = function() {
+		var pr = self.rpc('MR.authorize').apply(this, arguments);
+		return pr.then(function(user) {
 			self.user = user;
 			return user;
-		})
-	}
-	self.authorize = function() {
-		return assignAndReturn(self.rpc('MR.authorize').apply(this, arguments));
+		});
 	};
+
 	self.deAuthorize = function() {
-		return assignAndReturn(self.rpc('MR.deAuthorize').apply(this, arguments));
+		var pr = self.rpc('MR.deAuthorize').apply(this, arguments);
+		return pr.then(function() {
+			self.user = defUser;
+		});
 	};
 
 	/**
