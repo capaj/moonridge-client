@@ -429,7 +429,7 @@ function Moonridge(opts) {
 						var reExecute = function() {
 							queryExecFn(true);
 						};
-						if (self.authObj) { //auth obj should be deleted if you need to logout a user
+						if (self.user.privilege_level > 0) { //if user has been authorized
 							//when user is authenticated, we want to reexecute after he is reauthenticated
 							self.socket.on('authSuccess', reExecute);
 						} else {
