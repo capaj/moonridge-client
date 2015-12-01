@@ -1,5 +1,5 @@
 var RPC = require('socket.io-rpc-client')
-var extend = Object.copyOwnProperties	//this is defined in o.extend dependency to socket.io-rpc
+var extend = Object.copyOwnProperties	// this is defined in o.extend dependency to socket.io-rpc
 var debug = require('debug')('moonridge:client')
 var QueryChainable = require('./moonridge/query-chainable')
 var difference = require('lodash.difference')
