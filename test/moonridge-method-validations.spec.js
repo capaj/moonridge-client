@@ -1,6 +1,6 @@
 require('chai').should();
 
-var validations = require('../moonridge/moonridge-method-validations');
+var validations = require('../lib/moonridge-method-validations');
 
 describe('moonridge method validations', function() {
 	it('should fail when validating distinct call with wrong number or arguments', function() {

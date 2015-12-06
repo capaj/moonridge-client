@@ -1,11 +1,10 @@
+'use strict'
 var RPC = require('socket.io-rpc-client')
-var extend = Object.copyOwnProperties	// this is defined in o.extend dependency to socket.io-rpc
-var debug = require('debug')('moonridge:client')
-var QueryChainable = require('./moonridge/query-chainable')
-var difference = require('lodash.difference')
-var isNumber = function (val) {
-  return typeof val === 'number'
-}
+
+const debug = require('debug')('moonridge:client')
+const QueryChainable = require('./lib/query-chainable')
+const Emitter = require('./lib/weakee')
+const LiveQuery = require('./lib/live-query')
 
 /**
  * A Moonridge pseudo-constructor(don't call it with new keyword)
@@ -14,8 +13,7 @@ var isNumber = function (val) {
  *                                  {Object} hs handshake for socket.io which you can access via socket.request._query
  * @returns {Moonridge} a Moonridge backend instance
  */
-function Moonridge(opts) {
-
+function Moonridge (opts) {
   var defUser = {privilege_level: 0}
   var self = {user: defUser} // by default, users priviliges are always set to 1
 
@@ -53,6 +51,8 @@ function Moonridge(opts) {
    * @constructor
    */
   function Model (name) {
+    Emitter.call(this)
+
     var model = this
     var lastIndex = 0  // this is used for storing liveQueries in _LQs object as an index, each liveQuery has unique
     this.name = name
@@ -65,6 +65,23 @@ function Moonridge(opts) {
     }
     this.modelRpc = modelRpc
 
+    self.socket.on('schemaEvent', function (details) {
+      if (details.modelName === name) {
+        model.emit(details.evName, details.doc)
+      }
+    })
+    this.on = function (evName, cb) {
+      let subscribed = Model.prototype.on.call(model, evName, cb)
+      if (subscribed === 1) {
+        return modelRpc('subscribe')(evName)
+      }
+    }
+    this.off = function (evName, cb) {
+      let left = Model.prototype.off.call(model, evName, cb)
+      if (left === 0) {
+        return modelRpc('unsubscribe')(evName)
+      }
+    }
     this._LQs = {}	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
     this._LQsByQuery = {}	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
 
@@ -148,9 +165,15 @@ function Moonridge(opts) {
         var LQ = model._LQs[LQId]
         if (LQ) {
           var params = arguments
+
           return LQ.promise.then(function () {
+            console.log('LQeventhandler', eventName, params)
             LQ['on_' + eventName](doc, isInResult)
-            LQ._invokeListeners(eventName, params)  // invoking model event
+            LQ.emit(eventName, params)  // invoking model event
+          }, function (err) {
+            setTimeout(() => {
+              throw err // otherwise error is not thrown
+            })
           })
         } else {
           debug('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId)
@@ -173,63 +196,7 @@ function Moonridge(opts) {
     this.liveQuery = function (previousLQ) {
       previousLQ && previousLQ.stop()
 
-      var LQ = {_model: model}
-
-      var eventListeners = {
-        update: [],
-        distinctSync: [],
-        remove: [],
-        add: [],
-        init: [],    // is fired when first query result gets back from the server
-        any: []
-      }
-
-      LQ._invokeListeners = function () {
-        var which = arguments[0]
-        debug('invoking ', which, ' with arguments ', arguments)
-        var index = eventListeners[which].length
-        while (index--) {
-          try {
-            eventListeners[which][index].apply(LQ, arguments)
-          } catch (err) {
-            console.error(err.stack)
-            throw err
-          }
-        }
-
-        index = eventListeners.any.length
-        while (index--) {
-          try {
-            eventListeners.any[index].apply(LQ, arguments)
-          } catch (err) {
-            console.error(err.stack)
-            throw err
-          }
-        }
-      }
-
-      /**
-       * registers event callback on this model
-       * @param {String} evName
-       * @param {Function} callback will be called with LiveQuery as context, evName, and two other params
-       * @returns {Number}
-       */
-      LQ.on = function (evName, callback) {
-        var subscriberId = eventListeners[evName].push(callback) - 1
-        /**
-         * unregisters previously registered event callback
-         * @returns {Boolean} true when event was unregistered, false any subsequent call
-         */
-        return function unsubscribeEventListener () {
-          if (eventListeners[evName][subscriberId]) {
-            eventListeners[evName].splice(subscriberId, 1)
-            return true
-          } else {
-            return false
-          }
-        }
-      }
-
+      var LQ = new LiveQuery(model, modelRpc)
       if (typeof previousLQ === 'object') {
         LQ.query = previousLQ.query
         LQ.indexedByMethods = previousLQ.indexedByMethods
@@ -237,132 +204,6 @@ function Moonridge(opts) {
         LQ.query = []  // serializable query object
         // utility object to which helps when we need to resolve query type and branch our code
         LQ.indexedByMethods = {}
-      }
-
-      LQ.getDocById = function (id) {
-        var i = LQ.result.length
-        while (i--) {
-          if (LQ.result[i]._id === id) {
-            return LQ.result[i]
-          }
-        }
-        return null
-      }
-      // syncing logic
-      LQ.on_add = function (doc, index) {
-        if (LQ.indexedByMethods.findOne) {
-          return LQ.result.splice(index, 1, doc)
-        }
-        if (LQ.indexedByMethods.count) {
-          LQ.result += 1 // when this is a count query, just increment and call it a day
-          return
-        }
-
-        if (LQ.result[index]) {
-          LQ.result.splice(index, 0, doc)
-        } else {
-          LQ.result.push(doc)
-        }
-        if (LQ.indexedByMethods.limit < LQ.result.length) {
-          LQ.result.splice(LQ.result.length - 1, 1)  // this needs to occur after push of the new doc
-        }
-      }
-      /**
-       *
-       * @param {Object} doc
-       * @param {Number} resultIndex for count it indicates whether to increment, decrement or leave as is,
-       *                   for normal queries can be a numerical index also
-       */
-      LQ.on_update = function (doc, resultIndex) {
-        debug('LQ.on_update ', doc, resultIndex)
-
-        if (LQ.indexedByMethods.count) {	// when this is a count query
-          if (resultIndex === -1) {
-            LQ.result -= 1
-          } else {
-            LQ.result += 1
-          }
-          return// just increment/decrement and call it a day
-        }
-
-        var i = LQ.result.length
-        while (i--) {
-          var updated
-          if (LQ.result[i]._id === doc._id) {
-            if (resultIndex === false) {
-              LQ.result.splice(i, 1)  // removing from docs
-              return
-            } else {
-              // if a number, then doc should be moved
-
-              if (resultIndex !== i) {
-                LQ.result.splice(i, 1)
-                if (i < resultIndex) {
-                  LQ.result.splice(resultIndex - 1, 0, doc)
-                } else {
-                  LQ.result.splice(resultIndex, 0, doc)
-                }
-              } else {
-                updated = LQ.result[i]
-                extend(updated, doc)
-              }
-            }
-
-            return
-          }
-        }
-        // when not found
-        if (resultIndex !== -1) {
-          if (LQ.result[resultIndex]) {
-            LQ.result.splice(resultIndex, 0, doc)
-          } else {
-            LQ.result.push(doc) // pushing into docs if it was not found by loop
-          }
-          return
-        }
-        debug('Failed to find updated document _id ' + doc._id)
-      }
-      /**
-       * @param {String} id
-       * @returns {boolean} true when it removes an element
-       */
-      LQ.on_remove = function (id) {
-        if (LQ.indexedByMethods.count) {
-          LQ.result -= 1	// when this is a count query, just decrement and call it a day
-          return true
-        }
-        var i = LQ.result.length
-        while (i--) {
-          if (LQ.result[i]._id === id) {
-            LQ.result.splice(i, 1)
-            return true
-          }
-        }
-        debug('Failed to find deleted document.')
-
-        return false
-      }
-      LQ.on_distinctSync = function (syncObj) {
-        LQ.result = LQ.result.concat(syncObj.add)
-        LQ.result = difference(LQ.result, syncObj.remove)
-
-        debug('distinctSync has run, values now ', LQ.result)
-      }
-      /**
-       * notify the server we don't want to receive any more updates on this query
-       * @returns {Promise}
-       */
-      LQ.stop = function () {
-        debug('stopping live query: ', LQ.index)
-        if (isNumber(LQ.index) && model._LQs[LQ.index]) {
-          LQ.stopped = true
-          return modelRpc('unsubLQ')(LQ.index).then(function () {
-            delete model._LQs[LQ.index]
-            delete model._LQsByQuery[LQ._queryStringified]
-          })
-        } else {
-          throw new Error('There must be a valid index property, when stop is called')
-        }
       }
 
       /**
@@ -405,7 +246,7 @@ function Moonridge(opts) {
               LQ.result[i] = res.docs[i]
             }
           }
-          LQ._invokeListeners('init', res)
+          LQ.emit('init', res)
 
           if (!dontSubscribe) {
             self.socket.on('disconnect', function () {
@@ -436,6 +277,7 @@ function Moonridge(opts) {
       return new QueryChainable(LQ, queryExecFn, model)
     }
   }
+  Model.prototype = Object.create(Emitter.prototype)
 
   /**
    * loads one model or returns already requested model promise

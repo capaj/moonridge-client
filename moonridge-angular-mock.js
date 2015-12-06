@@ -1,4 +1,4 @@
-var QueryChainable = require('./moonridge/query-chainable');
+var QueryChainable = require('./lib/query-chainable');
 
 angular.module('Moonridge').factory('MoonridgeMock', function ($q, $log) {
 

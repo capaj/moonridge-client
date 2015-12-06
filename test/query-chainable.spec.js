@@ -1,4 +1,4 @@
-var QueryChainable = require('../moonridge/query-chainable');
+var QueryChainable = require('../lib/query-chainable');
 
 require('chai').should();
 
@@ -25,4 +25,3 @@ describe('query chainable', function() {
 	});
 
 });
-
