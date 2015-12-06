@@ -165,9 +165,15 @@ function Moonridge (opts) {
         var LQ = model._LQs[LQId]
         if (LQ) {
           var params = arguments
+
           return LQ.promise.then(function () {
+            console.log('LQeventhandler', eventName, params)
             LQ['on_' + eventName](doc, isInResult)
             LQ.emit(eventName, params)  // invoking model event
+          }, function (err) {
+            setTimeout(() => {
+              throw err // otherwise error is not thrown
+            })
           })
         } else {
           debug('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId)
@@ -191,7 +197,6 @@ function Moonridge (opts) {
       previousLQ && previousLQ.stop()
 
       var LQ = new LiveQuery(model, modelRpc)
-
       if (typeof previousLQ === 'object') {
         LQ.query = previousLQ.query
         LQ.indexedByMethods = previousLQ.indexedByMethods
