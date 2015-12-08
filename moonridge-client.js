@@ -71,13 +71,13 @@ function Moonridge (opts) {
       }
     })
     this.on = function (evName, cb) {
-      let subscribed = Model.prototype.on.call(model, evName, cb)
+      const subscribed = Model.prototype.on.call(model, evName, cb)
       if (subscribed === 1) {
         return modelRpc('subscribe')(evName)
       }
     }
     this.off = function (evName, cb) {
-      let left = Model.prototype.off.call(model, evName, cb)
+      const left = Model.prototype.off.call(model, evName, cb)
       if (left === 0) {
         return modelRpc('unsubscribe')(evName)
       }
@@ -171,7 +171,7 @@ function Moonridge (opts) {
             LQ['on_' + eventName](doc, isInResult)
             LQ.emit(eventName, params)  // invoking model event
           }, function (err) {
-            setTimeout(() => {
+            setTimeout(function () {
               throw err // otherwise error is not thrown
             })
           })
