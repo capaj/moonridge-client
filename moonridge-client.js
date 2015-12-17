@@ -52,7 +52,7 @@ function Moonridge (opts) {
    */
   function Model (name) {
     Emitter.call(this)
-
+    const resubscribers = {}
     var model = this
     var lastIndex = 0  // this is used for storing liveQueries in _LQs object as an index, each liveQuery has unique
     this.name = name
@@ -72,13 +72,24 @@ function Moonridge (opts) {
     })
     this.on = function (evName, cb) {
       const subscribed = Model.prototype.on.call(model, evName, cb)
+
       if (subscribed === 1) {
+        const subscribe = function () {
+          modelRpc('subscribe')(evName)
+        }
+        resubscribers[evName] = subscribe
+        self.socket.on('reconnect', subscribe)
+        self.socket.on('authSuccess', subscribe)
         return modelRpc('subscribe')(evName)
       }
     }
     this.off = function (evName, cb) {
       const left = Model.prototype.off.call(model, evName, cb)
+
       if (left === 0) {
+        self.socket.removeListener('reconnect', resubscribers[evName])
+        self.socket.removeListener('authSuccess', resubscribers[evName])
+        resubscribers[evName] = null
         return modelRpc('unsubscribe')(evName)
       }
     }
