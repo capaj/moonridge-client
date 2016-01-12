@@ -75,15 +75,15 @@ function Moonridge (opts) {
 
       if (subscribed === 1) {
         const subscribe = function () {
-          debug(`subscribing for ${evName} on model ${name}`)
-          modelRpc('subscribe')(evName)
+          debug(`subscribing for ${evName} on model ${name} over rpc`)
+          return modelRpc('subscribe')(evName)
         }
         resubscribers[evName] = subscribe
         self.socket.on('reconnect', subscribe)
         self.socket.on('authSuccess', subscribe)
         return subscribe()
       } else {
-        debug(`NOT subscribing for ${evName} on model ${name} because we are already subscribed`)
+        debug(`NOT subscribing for ${evName} on model ${name} over rpc because we are already subscribed`)
       }
     }
     this.off = function (evName, cb) {
@@ -93,6 +93,7 @@ function Moonridge (opts) {
         self.socket.removeListener('reconnect', resubscribers[evName])
         self.socket.removeListener('authSuccess', resubscribers[evName])
         resubscribers[evName] = null
+        debug(`UNsubscribing from ${evName} on model ${name} over rpc`)
         return modelRpc('unsubscribe')(evName)
       }
     }
