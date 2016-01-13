@@ -1,10 +1,10 @@
 'use strict'
 var RPC = require('socket.io-rpc-client')
 
-const debug = require('debug')('moonridge:client')
-const QueryChainable = require('./lib/query-chainable')
-const Emitter = require('./lib/weakee')
-const LiveQuery = require('./lib/live-query')
+var debug = require('debug')('moonridge:client')
+var QueryChainable = require('./lib/query-chainable')
+var Emitter = require('./lib/weakee')
+var LiveQuery = require('./lib/live-query')
 
 /**
  * A Moonridge pseudo-constructor(don't call it with new keyword)
@@ -52,7 +52,7 @@ function Moonridge (opts) {
    */
   function Model (name) {
     Emitter.call(this)
-    const resubscribers = {}
+    var resubscribers = {}
     var model = this
     var lastIndex = 0  // this is used for storing liveQueries in _LQs object as an index, each liveQuery has unique
     this.name = name
@@ -71,10 +71,10 @@ function Moonridge (opts) {
       }
     })
     this.on = function (evName, cb) {
-      const subscribed = Model.prototype.on.call(model, evName, cb)
+      var subscribed = Model.prototype.on.call(model, evName, cb)
 
       if (subscribed === 1) {
-        const subscribe = function () {
+        var subscribe = function () {
           debug(`subscribing for ${evName} on model ${name} over rpc`)
           return modelRpc('subscribe')(evName)
         }
@@ -87,7 +87,7 @@ function Moonridge (opts) {
       }
     }
     this.off = function (evName, cb) {
-      const left = Model.prototype.off.call(model, evName, cb)
+      var left = Model.prototype.off.call(model, evName, cb)
 
       if (left === 0) {
         self.socket.removeListener('reconnect', resubscribers[evName])
