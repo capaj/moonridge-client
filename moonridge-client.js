@@ -102,10 +102,11 @@ function Moonridge (opts) {
 
     /**
      * @param {Object} toUpdate moonridge object
+     * @param {Boolean} resolveWhole if true, it will resolve with whole object instead of just the version
      * @returns {Promise} resolved when object is saved
      */
-    this.update = function (toUpdate) {
-      return modelRpc('update')(toUpdate)
+    this.update = function (toUpdate, resolveWhole) {
+      return modelRpc('update')(toUpdate, resolveWhole)
     }
     /**
      * @param {Object} query which will be used to find one document to update
