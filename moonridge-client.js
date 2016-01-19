@@ -268,16 +268,16 @@ function Moonridge (opts) {
               LQ.stopped = true
             })
 
-            var reExecute = function () {
+            var reExecute = function (evName) {
+              debug(`reexecuting LiveQuery ${LQ._queryStringified} after ${evName}`)
               queryExecFn(true)
             }
-            if (self.user.privilege_level > 0) { // if user has been authorized
-              // when user is authenticated, we want to reexecute after he is reauthenticated
-              self.socket.on('authSuccess', reExecute)
-            } else {
-              // when he is anonymous, reexecute right after reconnect
-              self.socket.on('reconnect', reExecute)
-            }
+            self.socket.on('authSuccess', () => {
+              reExecute('authSuccess')  // for async authorization
+            })
+            self.socket.on('reconnect', () => {
+              reExecute('reconnect') // for synchronous authorization
+            })
           } else {
             LQ.stopped = false
             LQ.live = true
