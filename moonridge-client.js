@@ -75,7 +75,7 @@ function Moonridge (opts) {
 
       if (subscribed === 1) {
         var subscribe = function () {
-          debug(`subscribing for ${evName} on model ${name} over rpc`)
+          debug('subscribing for ', evName, ' on model ', name, 'over rpc')
           return modelRpc('subscribe')(evName)
         }
         resubscribers[evName] = subscribe
@@ -83,7 +83,7 @@ function Moonridge (opts) {
         self.socket.on('authSuccess', subscribe)
         return subscribe()
       } else {
-        debug(`NOT subscribing for ${evName} on model ${name} over rpc because we are already subscribed`)
+        debug('NOT subscribing for ', evName, ' on model ', name, 'over rpc because we are already subscribed')
       }
     }
     this.off = function (evName, cb) {
@@ -93,7 +93,7 @@ function Moonridge (opts) {
         self.socket.removeListener('reconnect', resubscribers[evName])
         self.socket.removeListener('authSuccess', resubscribers[evName])
         resubscribers[evName] = null
-        debug(`UNsubscribing from ${evName} on model ${name} over rpc`)
+        debug('UNsubscribing from ', evName, ' on model ', name, 'over rpc')
         return modelRpc('unsubscribe')(evName)
       }
     }
@@ -270,7 +270,7 @@ function Moonridge (opts) {
             })
 
             var reExecute = function (evName) {
-              debug(`reexecuting LiveQuery ${LQ._queryStringified} after ${evName}`)
+              debug('reexecuting LiveQuery ', LQ._queryStringified, ' after event ', evName)
               queryExecFn(true)
             }
             self.socket.on('authSuccess', () => {
