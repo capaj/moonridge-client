@@ -273,10 +273,10 @@ function Moonridge (opts) {
               debug('reexecuting LiveQuery ', LQ._queryStringified, ' after event ', evName)
               queryExecFn(true)
             }
-            self.socket.on('authSuccess', () => {
+            self.socket.on('authSuccess', function () {
               reExecute('authSuccess')  // for async authorization
             })
-            self.socket.on('reconnect', () => {
+            self.socket.on('reconnect', function () {
               reExecute('reconnect') // for synchronous authorization
             })
           } else {
