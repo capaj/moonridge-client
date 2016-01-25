@@ -183,7 +183,7 @@ function Moonridge (opts) {
           var params = arguments
 
           return LQ.promise.then(function () {
-            console.log('LQeventhandler', eventName, params)
+            debug('LQ eventhandler runs for ', eventName, params)
             LQ['on_' + eventName](doc, isInResult)
             LQ.emit(eventName, params)  // invoking model event
           }, function (err) {
