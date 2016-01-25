@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 describe('moonridge-client', function () {
-  it('should resubscribe to schema events on reconnect', function () {
+  it('should resubscribe to schema events on reconnect(waiting for asyncAuthorization)', function () {
 
   })
 

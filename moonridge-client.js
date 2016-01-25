@@ -30,10 +30,11 @@ function Moonridge (opts) {
   self.authorize = function () {
     var args = arguments
     var pr = self.rpc('MR.authorize').apply(this, args)
+    self.asyncAuthorization = pr
     return pr.then(function (user) {
       self.user = user
       self.socket.on('reconnect', function () {
-        self.rpc('MR.authorize').apply(this, args)
+        self.asyncAuthorization = self.rpc('MR.authorize').apply(this, args)
       })
       return user
     })
@@ -75,12 +76,14 @@ function Moonridge (opts) {
 
       if (subscribed === 1) {
         var subscribe = function () {
+          Promise.resolve(self.asyncAuthorization).then(() => {
+            reExecute('reconnect') // for synchronous authorization
+          })
           debug('subscribing for ', evName, ' on model ', name, 'over rpc')
           return modelRpc('subscribe')(evName)
         }
         resubscribers[evName] = subscribe
         self.socket.on('reconnect', subscribe)
-        self.socket.on('authSuccess', subscribe)
         return subscribe()
       } else {
         debug('NOT subscribing for ', evName, ' on model ', name, 'over rpc because we are already subscribed')
@@ -91,7 +94,6 @@ function Moonridge (opts) {
 
       if (left === 0) {
         self.socket.removeListener('reconnect', resubscribers[evName])
-        self.socket.removeListener('authSuccess', resubscribers[evName])
         resubscribers[evName] = null
         debug('UNsubscribing from ', evName, ' on model ', name, 'over rpc')
         return modelRpc('unsubscribe')(evName)
@@ -273,11 +275,11 @@ function Moonridge (opts) {
               debug('reexecuting LiveQuery ', LQ._queryStringified, ' after event ', evName)
               queryExecFn(true)
             }
-            self.socket.on('authSuccess', function () {
-              reExecute('authSuccess')  // for async authorization
-            })
+
             self.socket.on('reconnect', function () {
-              reExecute('reconnect') // for synchronous authorization
+              Promise.resolve(self.asyncAuthorization).then(() => {
+                reExecute('reconnect') // for synchronous authorization
+              })
             })
           } else {
             LQ.stopped = false
