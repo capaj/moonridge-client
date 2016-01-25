@@ -76,7 +76,7 @@ function Moonridge (opts) {
 
       if (subscribed === 1) {
         var subscribe = function () {
-          Promise.resolve(self.asyncAuthorization).then(() => {
+          Promise.resolve(self.asyncAuthorization).then(function () {
             debug('subscribing for ', evName, ' on model ', name, 'over rpc')
             return modelRpc('subscribe')(evName)
           })
@@ -276,7 +276,7 @@ function Moonridge (opts) {
             }
 
             self.socket.on('reconnect', function () {
-              Promise.resolve(self.asyncAuthorization).then(() => {
+              Promise.resolve(self.asyncAuthorization).then(function () {
                 reExecute('reconnect') // for synchronous authorization
               })
             })
