@@ -77,10 +77,9 @@ function Moonridge (opts) {
       if (subscribed === 1) {
         var subscribe = function () {
           Promise.resolve(self.asyncAuthorization).then(() => {
-            reExecute('reconnect') // for synchronous authorization
+            debug('subscribing for ', evName, ' on model ', name, 'over rpc')
+            return modelRpc('subscribe')(evName)
           })
-          debug('subscribing for ', evName, ' on model ', name, 'over rpc')
-          return modelRpc('subscribe')(evName)
         }
         resubscribers[evName] = subscribe
         self.socket.on('reconnect', subscribe)
