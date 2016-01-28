@@ -77,10 +77,14 @@ function Moonridge (opts) {
 
       if (subscribed === 1) {
         var subscribe = function () {
-          Promise.resolve(self.asyncAuthorization).then(function () {
-            debug('subscribing for ', evName, ' on model ', name, 'over rpc')
+          if (self.asyncAuthorization) {
+            return Promise.resolve(self.asyncAuthorization).then(function () {
+              debug('subscribing for ', evName, ' on model ', name, 'over rpc')
+              return modelRpc('subscribe')(evName)
+            })
+          } else {
             return modelRpc('subscribe')(evName)
-          })
+          }
         }
         resubscribers[evName] = subscribe
         self.socket.on('reconnect', subscribe)
