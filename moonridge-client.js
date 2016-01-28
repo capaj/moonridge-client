@@ -1,5 +1,6 @@
 'use strict'
 var RPC = require('socket.io-rpc-client')
+var mss = require('mongoose-schema-serializer')()
 
 var debug = require('debug')('moonridge:client')
 var QueryChainable = require('./lib/query-chainable')
@@ -149,10 +150,12 @@ function Moonridge (opts) {
     }
 
     /**
-     * @returns {Array<String>} indicating which properties this model has defined in it's schema
+     * @returns {Object}
      */
-    this.listPaths = function () {
-      return modelRpc('listPaths')()
+    this.getSchema = function () {
+      return modelRpc('getSchema')().then(schemaSerialized => {
+        return mss.parse(schemaSerialized)
+      })
     }
 
     /**
