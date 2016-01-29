@@ -31,14 +31,14 @@
   "homepage": "https://github.com/capaj/moonridge-client",
   "dependencies": {
     "lodash.difference": "^3.2.2",
-    "mongoose-schema-serializer": "^1.0.0",
+    "mongoose-schema-serializer": "^1.0.1",
     "socket.io-rpc-client": "^1.1.0"
   },
   "jspm": {
     "dependencies": {
       "debug": "npm:debug@^2.2.0",
       "lodash.difference": "npm:lodash.difference@^3.2.2",
-      "mongoose-schema-serializer": "npm:mongoose-schema-serializer@^1.0.0",
+      "mongoose-schema-serializer": "npm:mongoose-schema-serializer@^1.0.1",
       "socket.io-rpc-client": "github:capaj/socket.io-rpc-client@^1.1.0"
     },
     "devDependencies": {
