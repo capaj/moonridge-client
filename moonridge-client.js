@@ -1,3 +1,4 @@
+'format es6'
 'use strict'
 var RPC = require('socket.io-rpc-client')
 var mss = require('mongoose-schema-serializer')()
