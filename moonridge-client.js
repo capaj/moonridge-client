@@ -1,4 +1,3 @@
-'format es6'
 'use strict'
 var RPC = require('socket.io-rpc-client')
 var mss = require('mongoose-schema-serializer')()
@@ -158,7 +157,7 @@ function Moonridge (opts) {
      * @returns {Object}
      */
     this.getSchema = function () {
-      return modelRpc('getSchema')().then(schemaSerialized => {
+      return modelRpc('getSchema')().then(function (schemaSerialized) {
         return mss.parse(schemaSerialized)
       })
     }
