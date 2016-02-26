@@ -15,8 +15,8 @@ var LiveQuery = require('./lib/live-query')
  * @returns {Moonridge} a Moonridge backend instance
  */
 function Moonridge (opts) {
-  var defUser = {privilege_level: 0}
-  var self = {user: defUser} // by default, users priviliges are always set to 1
+  var defUser = {privilege_level: 0} // by default, users priviliges are always set to 0
+  var self = {user: defUser}
 
   var models = Object.create(null)
 
@@ -164,24 +164,21 @@ function Moonridge (opts) {
 
     /**
      * @returns {QueryChainable} which has same methods as mongoose.js query. When you chain all query
-     *                           conditions, you use exec() to fire the query
+     *                           conditions, you use exec() to fire the query, Promise is returned
      */
     this.query = function () {
       var query = {query: [], indexedByMethods: {}}
-      return new QueryChainable(query, function () {
-        var callQuery = function () {
-          query.promise = modelRpc('query')(query.query).then(function (result) {
-            debug('query result ', result)
-            query.result = result
-            return result
-          })
-        }
-
-        query.exec = callQuery
-        callQuery()
-
-        return query
+      var chainable = new QueryChainable(query, function () {
+        return modelRpc('query')(query.query).then(function (result) {
+          debug('query result ', result)
+          query.result = result
+          return result
+        })
       }, model)
+      chainable.then = function (res, rej) {
+        return chainable.exec().then(res, rej)
+      }
+      return chainable
     }
 
     var createLQEventHandler = function (eventName) {
