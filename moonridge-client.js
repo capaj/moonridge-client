@@ -66,6 +66,9 @@ function Moonridge (opts) {
       return self.rpc('MR.' + name + '.' + modelMethod)
     }
     this.modelRpc = modelRpc
+    this.static = function (staticMethod) {
+      return self.rpc('MR.' + name + '.statics.' + staticMethod)
+    }
 
     self.socket.on('schemaEvent', function (details) {
       if (details.modelName === name) {

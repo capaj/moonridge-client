@@ -1,5 +1,5 @@
 /* eslint-env mocha */
-describe('moonridge-client', function () {
+describe.skip('moonridge-client', function () {
   it('should resubscribe to schema events on reconnect(waiting for asyncAuthorization)', function () {
 
   })
@@ -8,7 +8,7 @@ describe('moonridge-client', function () {
 
   })
 
-  it('should have a convenience method "then" for executing the query and registering promise callbacks at once', function (done) {
+  it('should have a convenience method "then" for executing the query and registering promise callbacks at once', function () {
 
   })
 })
