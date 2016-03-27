@@ -22,12 +22,18 @@ function Moonridge (opts) {
 
   self.rpc = RPC(opts.url, opts.hs)
   self.socket = self.rpc.socket
-  self.getAllModels = function () {
-    self.rpc('MR.getModels')().then(function (models) {
-//                    TODO call getModel for all models
+  /**
+  * @returns {Promise} resolved with and array of models for all server models
+  **/
+  self.fetchAllModels = function () {
+    return self.rpc('MR.getModels')().then(function (models) {
+      return models.map(self.model)
     })
   }
-
+  /**
+  * @param {Object} auth object
+  * @returns {Promise} resolved on succesful authorization
+  **/
   self.authorize = function () {
     var args = arguments
     var pr = self.rpc('MR.authorize').apply(this, args)
@@ -41,6 +47,9 @@ function Moonridge (opts) {
     })
   }
 
+  /**
+  * @returns {Promise} resolved when user was removed from this socket on the server
+  **/
   self.deAuthorize = function () {
     var pr = self.rpc('MR.deAuthorize').apply(this, arguments)
     return pr.then(function () {
@@ -145,7 +154,7 @@ function Moonridge (opts) {
     }
 
     /**
-     * @param {Object|String} toRemove must have and _id if an object, othrwise we assume the string is the id
+     * @param {Object|String} toRemove must have and _id if an object, otherwise we assume the string is the id
      * @returns {Promise}
      */
     this.remove = function (toRemove) {
@@ -212,8 +221,12 @@ function Moonridge (opts) {
       this.clientRPCMethods[name] = createLQEventHandler(name)
     }.bind(this))
 
+    var toExpose = {}
+    toExpose[name] = this.clientRPCMethods
+    self.rpc.expose({MR: toExpose})
+
     /**
-     * @param {Object} previousLQ useful when we want to modify a running LQ, pass it after it is stopped
+     * @param {Object} [previousLQ] useful when we want to modify a running LQ, pass it after it is stopped
      * @returns {QueryChainable} same as query, difference is that executing this QueryChainable won't return
      *                           promise, but liveQuery object itself
      */
@@ -231,7 +244,7 @@ function Moonridge (opts) {
       }
 
       /**
-       * @param {Boolean} dontSubscribe when true, no events from socket will be subscribed
+       * @param {Boolean} [dontSubscribe] when true, no events from socket will be subscribed
        * @returns {Object} live query object with docs property which contains realtime result of the query
        */
       var queryExecFn = function (dontSubscribe) {
@@ -304,7 +317,7 @@ function Moonridge (opts) {
   Model.prototype = Object.create(Emitter.prototype)
 
   /**
-   * loads one model or returns already requested model promise
+   * defines a model to be used with the backend
    * @param {String} name
    * @returns {Promise} which resolves with the model
    */
@@ -313,28 +326,9 @@ function Moonridge (opts) {
     if (!model) {
       model = new Model(name)
       models[name] = model
-
-      var toExpose = {}
-      toExpose[name] = model.clientRPCMethods
-      self.rpc.expose({MR: toExpose})
     }
 
     return model
-  }
-
-  /**
-   * loads more than one model
-   * @param {Array<string>} models
-   * @returns {Promise} which resolves with an Object where models are indexed by their names
-   */
-  self.getModels = function (models) {
-    var promises = {}
-    var index = models.length
-    while (index--) {
-      var modelName = models[index]
-      promises[modelName] = self.getModel(modelName)
-    }
-    return Promise.all(promises)
   }
 
   return self
