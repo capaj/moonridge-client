@@ -15,6 +15,6 @@ If you don't have jspm, install it with this command:
 
     npm i jspm -g
     
-As it works in node, it should be possible to run in browserify/webpack as well, but I don't guarantee it.
+As it works in node, it should be possible to run in browserify/webpack as well, but I don't guarantee it. JSPM might also be able to make you a bundle of all scripts needed. This bundle can then be used as regular script file with a script tag. Theoretically.
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
