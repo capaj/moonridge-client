@@ -113,7 +113,7 @@ user logged out/lost priviliges
 ```
 #### getSchema()
 ```
-@returns {Object} serialized and deserialized mongoose schema using mongoose-schema-serializer
+@returns {Promise} resolved with serialized and deserialized mongoose schema using mongoose-schema-serializer
 ```
 
 ### QueryChainable instance API
