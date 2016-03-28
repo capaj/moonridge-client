@@ -43,7 +43,7 @@ synchronously defines a model to be used with the backend
 @param {String} name
 @returns {Model}
 ```
-#### fetchAllModels(string)
+#### fetchAllModels()
 asynchronously gets a list of all models on the backend and then synchronously defines them
 ```
 @param {String} name
