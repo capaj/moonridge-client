@@ -69,7 +69,7 @@ user logged out/lost priviliges
 ```
 #### liveQuery([previousLiveQuery])
 ```
-@param {Object} [previousLQ] useful when we want to modify a running LQ, pass it after it is stopped
+@param {Object} [previousLQ] useful when we want to modify an existing running LQ, pass it after it is stopped
 @returns {QueryChainable} same as query, difference is that executing this QueryChainable won't return
                           promise, but liveQuery object itself
 ```
@@ -84,6 +84,7 @@ user logged out/lost priviliges
 @param {Boolean} resolveWhole if true, it will resolve with whole object instead of just the version
 @returns {Promise} resolved when object is saved
 ```
+Why not return whoole object by default? Because it would waste bandwith. If you need to display latest version of a document, it is preferable to use liveQuery().findOne({_id: id}), instead of manually updating your copy
 #### remove(toRemove)
 ```
 @param {Object|String} toRemove must have and _id if an object, otherwise we assume the string is the id
