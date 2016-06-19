@@ -22,12 +22,18 @@ describe('moonridge method validations', function () {
     }).to.throw()
   })
 
+  it('should properly validate limit', function () {
+    expect(() => {
+      validations.limit([5])
+    }).to.not.throw()
+  })
+
   it('should fail when limit call has anything else but one integer', function () {
     expect(() => {
-      validations.where([])
+      validations.limit([])
     }).to.throw()
     expect(() => {
-      validations.where('10')
+      validations.limit(['10'])
     }).to.throw()
   })
 })
